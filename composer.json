@@ -34,7 +34,7 @@
             "name": "turbo",
             "email": "turbojia@163.com",
             "homepage": "http://turboblog.cn"
-        },
+        }
     ],
     "require": {
         "php": "^5.3.9 || ^7.0",
