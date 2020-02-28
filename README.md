@@ -1,4 +1,4 @@
-# 基于php-ffmpeg修复一些bug和增强
+# 声明：基于php-ffmpeg修复一些bug和增强【如果需要使用php-ffmpeg/php-ffmpeg请移步】
 
 # 修复Audio模式下不支持截取功能
 # 支持保存为m3u8
@@ -33,7 +33,7 @@ appear in latest ffmpeg version.
 The recommended way to install PHP-FFMpeg is through [Composer](https://getcomposer.org).
 
 ```bash
-$ composer require php-ffmpeg/php-ffmpeg
+$ composer require turbo/php-ffmpeg
 ```
 
 ## Basic Usage
