@@ -60,5 +60,5 @@
         "psr-4": {
             "Tests\\FFMpeg\\": "tests"
         }
-    },
+    }
 }
