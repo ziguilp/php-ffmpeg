@@ -142,7 +142,6 @@ class Audio extends AbstractStreamableMedia
             $commands[] = $format->getAudioChannels();
         }
 
-        $commands = array_merge($commands, $this->generateM3u8Param($outputPathfile));
         $commands = array_merge($commands, $this->generatOutStreamParam());
 
         $commands[] = $outputPathfile;
@@ -198,22 +197,6 @@ class Audio extends AbstractStreamableMedia
     }
 
     /**
-     * m3u8 
-     */
-    protected function generateM3u8Param($outputPathfile){
-        $arr = [];
-        if(substr($outputPathfile,-5)==".m3u8"){
-            $arr[] = '-hls_time';
-            $arr[] = 5;
-            $arr[] = "-hls_list_size";
-            $arr[] = 0;
-            $arr[] = '-hls_segment_filename';
-            $arr[] = substr($outputPathfile,0,-5)."_%04d.ts";
-        }
-        return $arr;
-    }
-
-    /**
      * audio、video 
      */
     protected function generatOutStreamParam(){
@@ -240,7 +223,6 @@ class Audio extends AbstractStreamableMedia
         $this->onlyVideo = $bal;
         return $this;
     }
-
 
     /**
      * Clips the video at the given time(s).

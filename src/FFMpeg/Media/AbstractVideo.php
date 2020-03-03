@@ -263,7 +263,6 @@ abstract class AbstractVideo extends Audio
             throw new InvalidArgumentException('Pass number should be a positive value.');
         }
 
-        $commands = array_merge($commands, $this->generateM3u8Param($outputPathfile));
         $commands = array_merge($commands, $this->generatOutStreamParam());
 
         for ($i = 1; $i <= $totalPasses; $i++) {
@@ -283,14 +282,4 @@ abstract class AbstractVideo extends Audio
 
         return $passes;
     }
-
-    // /**
-    //  * Return base part of command.
-    //  *
-    //  * @return array
-    //  */
-    // protected function basePartOfCommand()
-    // {
-    //     return array('-y', '-i', $this->pathfile);
-    // }
 }
