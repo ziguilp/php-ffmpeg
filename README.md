@@ -170,6 +170,23 @@ $filter->setFrameFileType($frameFileType);
 $video->addFilter($filter);
 ```
 
+##### m3u8
+
+```php
+$m3u8FilePath = '/someWhere/for/m3u8files';
+$autoEncrypt = true;
+$format = new FFMpeg\Format\Video\M3u8($m3u8FilePath, $autoEncrypt);
+$format->setAudioCodec("aac");
+$format->setAudioChannels(2);
+$format->setVideoCodec("libx264");
+$format->setTsTime(10);
+$format->setTsName($m3u8Path."/%04d.ts");
+$format->on('progress', function ($video, $format, $percentage) {
+    var_dump( "$percentage % transcoded\n" );
+});
+$video->save($format, $m3u8Path.'/index.m3u8');
+```
+
 ##### Clip
 
 Cuts the video at a desired point. Use input seeking method. It is faster option than use filter clip.

@@ -85,7 +85,6 @@ class Audio extends AbstractStreamableMedia
 
         $commands = $this->buildCommand($format, $outputPathfile);
 
-        // var_dump(implode(" ", $commands));
         try {
             $this->driver->command($commands, false, $listeners);
         } catch (ExecutionFailureException $e) {

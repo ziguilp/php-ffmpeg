@@ -32,8 +32,8 @@ class M3u8 extends DefaultVideo
     private $bframesSupport = true;
 
     protected $m3u8ExtraParams = [
-        '-c:v' => 'libx264',
-        '-c:a' => 'aac',
+        // '-c:v' => 'libx264',
+        // '-c:a' => 'aac',
         '-hls_time' => 5,
         '-hls_list_size' => 0,
         '-hls_segment_filename' => "%05d.ts",
@@ -54,7 +54,7 @@ class M3u8 extends DefaultVideo
         }
         
         $this->file_dir = $file_dir;
-        $this->setTsName();
+        $this->setTsName($this->file_dir.'%05d.ts');
         if($aufo_encrypt){
             $this->createKeyFile();
         }
