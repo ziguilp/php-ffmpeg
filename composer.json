@@ -1,7 +1,7 @@
 {
     "name": "turbo/php-ffmpeg",
     "type": "library",
-    "description": "基于php-ffmpeg/php-ffmpeg，增加一些功能和支持m3u8，直接保存后缀为m3u8即可，后续会继续更新支持",
+    "description": "基于php-ffmpeg/php-ffmpeg，增加一些功能和支持m3u8，后续会继续更新支持",
     "keywords": ["video processing", "video", "audio processing", "audio", "avconv", "ffmpeg", "avprobe", "ffprobe"],
     "license": "MIT",
     "authors": [
