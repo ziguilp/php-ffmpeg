@@ -1,8 +1,9 @@
 # 声明：基于php-ffmpeg修复一些bug和增强【如果需要使用php-ffmpeg/php-ffmpeg请移步】
 
 # 修复Audio模式下不支持截取功能
-# 支持保存为m3u8
+# 支持保存为m3u8【自动识别保存文件名】
 # 支持只保留音频流/视频流
+# 最新支持请切换版本v1.0.0以上
 
 [![Build Status](https://secure.travis-ci.org/PHP-FFMpeg/PHP-FFMpeg.png?branch=master)](http://travis-ci.org/PHP-FFMpeg/PHP-FFMpeg)
 
@@ -168,6 +169,16 @@ $filter = new ExtractMultipleFramesFilter($frameRate, $destinationFolder);
 $filter->setFrameFileType($frameFileType);
 
 $video->addFilter($filter);
+```
+
+
+##### m3u8[自动识别保存名称]
+
+```php
+$format->on('progress', function ($video, $format, $percentage) {
+    var_dump( "$percentage % transcoded\n" );
+});
+$video->save($format, 'path/index.m3u8');
 ```
 
 ##### Clip
