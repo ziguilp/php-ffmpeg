@@ -1,8 +1,9 @@
 # 声明：基于php-ffmpeg修复一些bug和增强【如果需要使用php-ffmpeg/php-ffmpeg请移步】
 
-# 修复Audio模式下不支持截取功能
+# 修复Audio格式下不支持截取功能
 # 支持保存为m3u8
 # 支持只保留音频流/视频流
+# 现在的缺点是转码速度比较慢，后续会优化
 
 [![Build Status](https://secure.travis-ci.org/PHP-FFMpeg/PHP-FFMpeg.png?branch=master)](http://travis-ci.org/PHP-FFMpeg/PHP-FFMpeg)
 
