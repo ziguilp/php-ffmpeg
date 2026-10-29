@@ -73,37 +73,32 @@ class TimeCode
      */
     public static function fromSeconds($quantity)
     {
-        $minutes = $hours = $frames = 0;
-
-        $frames = round(100 * ($quantity - floor($quantity)));
-        $seconds = floor($quantity);
-
-        if ($seconds > 59) {
-            $minutes = floor($seconds / 60);
-            $seconds = $seconds % 60;
+        if (!is_numeric($quantity) || !is_finite((float) $quantity) || $quantity < 0 || $quantity >= PHP_INT_MAX / 100) {
+            throw new InvalidArgumentException('Seconds must be a finite, non-negative number within range.');
         }
-        if ($minutes > 59) {
-            $hours = floor($minutes / 60);
-            $minutes = $minutes % 60;
-        }
+
+        $centiseconds = (int) round($quantity * 100);
+        $hours = intdiv($centiseconds, 360000);
+        $minutes = intdiv($centiseconds % 360000, 6000);
+        $seconds = intdiv($centiseconds % 6000, 100);
+        $frames = $centiseconds % 100;
 
         return new static($hours, $minutes, $seconds, $frames);
     }
 
     /**
      * Returns this timecode in seconds
-     * @return int
+     * @return float
      */
-    public function toSeconds() {
+    public function toSeconds()
+    {
         $seconds = 0;
 
         $seconds += $this->hours * 60 * 60;
         $seconds += $this->minutes * 60;
         $seconds += $this->seconds;
 
-        // TODO: Handle frames?
-
-        return (int) $seconds;
+        return $seconds + $this->frames / 100;
     }
 
     /**
@@ -112,9 +107,9 @@ class TimeCode
      * @param   TimeCode    $timecode   The Timecode to compare
      * @return bool
      */
-    public function isAfter(TimeCode $timecode) {
+    public function isAfter(TimeCode $timecode)
+    {
         // convert everything to seconds and compare
         return ($this->toSeconds() > $timecode->toSeconds());
     }
-
 }

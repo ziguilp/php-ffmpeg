@@ -108,19 +108,11 @@ class ExtractMultipleFramesFilter implements VideoFilterInterface
             }
 
             // Get the number of frames per second we have to extract.
-            if(preg_match('/(\d+)(?:\s*)([\+\-\*\/])(?:\s*)(\d+)/', $this->frameRate, $matches) !== FALSE){
-                $operator = $matches[2];
-
-                switch($operator){
-                    case '/':
-                        $nbFramesPerSecond = $matches[1] / $matches[3];
-                        break;
-
-                    default:
-                        throw new InvalidArgumentException('The frame rate is not a proper division: ' . $this->frameRate);
-                        break;
-                }
+            if (!is_string($this->frameRate) || preg_match('/^\s*([0-9]+)\s*\/\s*([0-9]+)\s*$/D', $this->frameRate, $matches) !== 1
+                || (float) $matches[1] <= 0 || (float) $matches[2] <= 0) {
+                throw new InvalidArgumentException('The frame rate must be a string containing a positive division.');
             }
+            $nbFramesPerSecond = $matches[1] / $matches[2];
 
             // Set the number of digits to use in the exported filenames
             $nbImages = ceil( $duration * $nbFramesPerSecond );

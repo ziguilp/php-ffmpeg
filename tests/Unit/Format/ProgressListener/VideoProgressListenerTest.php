@@ -26,7 +26,14 @@ class VideoProgressListenerTest extends TestCase
                 'duration' => $duration,
             ))));
 
-        $listener = new VideoProgressListener($ffprobe, __FILE__, $currentPass, $totalPass, $newVideoDuration);
+        $listener = new class($ffprobe, __FILE__, $currentPass, $totalPass, $newVideoDuration) extends VideoProgressListener {
+            public $timestamp = 0;
+
+            protected function getTimestamp(): float
+            {
+                return $this->timestamp;
+            }
+        };
         $phpunit = $this;
         $n = 0;
         $listener->on('progress', function ($percent, $remaining, $rate) use (&$n, $phpunit, $expectedPercent, $expectedRemaining, $expectedRate, $expectedPercent2, $expectedRemaining2, $expectedRate2) {
@@ -44,9 +51,9 @@ class VideoProgressListenerTest extends TestCase
         });
         // first one does not trigger progress event
         $listener->handle('any-type'.mt_rand(), $data);
-        sleep(1);
+        $listener->timestamp += 1;
         $listener->handle('any-type'.mt_rand(), $data);
-        sleep(1);
+        $listener->timestamp += 1;
         $listener->handle('any-type'.mt_rand(), $data2);
         $this->assertEquals(2, $n);
     }
@@ -65,7 +72,7 @@ class VideoProgressListenerTest extends TestCase
                 'frame=  854 fps=113 q=20.0 size=    4430kB time=00:00:33.04 bitrate=1098.5kbits/s dup=36 drop=0',
                 11,
                 32,
-                3868,
+                3859,
                 1,
                 1
             ),
@@ -80,7 +87,7 @@ class VideoProgressListenerTest extends TestCase
                 'frame=  854 fps=113 q=20.0 size=    4430kB time=00:00:33.04 bitrate=1098.5kbits/s dup=36 drop=0',
                 5,
                 32,
-                3868,
+                3859,
                 1,
                 2
             ),
@@ -95,7 +102,7 @@ class VideoProgressListenerTest extends TestCase
                 'frame=  854 fps=113 q=20.0 size=    4430kB time=00:00:33.04 bitrate=1098.5kbits/s dup=36 drop=0',
                 97,
                 0,
-                3868,
+                3859,
                 2,
                 2
             )

@@ -1,40 +1,16 @@
 language: php
-
-dist: trusty
-
-branches:
-  only:
-    - master
-    - v1.x
-
-cache:
-  directories:
-    - $HOME/.composer/cache
-    - $HOME/.cache
-
 php:
-  - 5.4
-  - 5.5
-  - 5.6
-  - 7.0
-  - 7.1
-  - 7.2
-  - 7.3
-
-matrix:
-  include:
-    - php: 5.4
-      env: COMPOSER_FLAGS="--prefer-lowest"
-
-before_install:
-  - sudo add-apt-repository ppa:mc3man/trusty-media -y
-  - sudo apt-get update -q
-  - composer self-update
-  - if [ "$COMPOSER_FLAGS" == "--prefer-lowest" ]; then composer require "roave/security-advisories" dev-master --no-update; fi;
-
+  - '7.4'
+  - '8.0'
+  - '8.1'
+  - '8.2'
+  - '8.3'
+  - '8.4'
+addons:
+  apt:
+    packages:
+      - ffmpeg
 install:
-  - sudo apt-get install -y ffmpeg
-  - composer update --prefer-dist $COMPOSER_FLAGS
-
+  - composer update --prefer-dist --no-interaction
 script:
-  - vendor/bin/phpunit --verbose
+  - composer test

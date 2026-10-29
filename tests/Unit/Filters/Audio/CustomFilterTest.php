@@ -12,7 +12,7 @@ class CustomFilterTest extends TestCase
     public function testApplyCustomFilter()
     {
         $audio = $this->getAudioMock();
-        $format = $this->getMock('FFMpeg\Format\AudioInterface');
+        $format = $this->createMock('FFMpeg\Format\AudioInterface');
 
         $filter = new CustomFilter('whatever i put would end up as a filter');
         $this->assertEquals(array('-af', 'whatever i put would end up as a filter'), $filter->apply($audio, $format));

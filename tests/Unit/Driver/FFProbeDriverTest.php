@@ -9,7 +9,7 @@ use Symfony\Component\Process\ExecutableFinder;
 
 class FFProbeDriverTest extends TestCase
 {
-    public function setUp()
+    protected function setUp(): void
     {
         $executableFinder = new ExecutableFinder();
 
@@ -41,11 +41,9 @@ class FFProbeDriverTest extends TestCase
         $this->assertEquals($conf, $ffprobe->getConfiguration());
     }
 
-    /**
-     * @expectedException FFMpeg\Exception\ExecutableNotFoundException
-     */
     public function testCreateFailureThrowsAnException()
     {
+        $this->expectException('FFMpeg\Exception\ExecutableNotFoundException');
         FFProbeDriver::create(array('ffprobe.binaries' => '/path/to/nowhere'));
     }
 }

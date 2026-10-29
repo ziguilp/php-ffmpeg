@@ -1,43 +1,70 @@
-# 声明：基于php-ffmpeg修复一些bug和增强【如果需要使用php-ffmpeg/php-ffmpeg请移步】
+# turbo/php-ffmpeg
 
-# 修复Audio格式下不支持截取功能
-# 支持保存为m3u8
-# 支持只保留音频流/视频流
-# 现在的缺点是转码速度比较慢，后续会优化
+[简体中文](README.md) | [English](README.en.md)
+
+[更新日志](CHANGELOG.md)
+
+本项目基于 PHP-FFMpeg，提供 bug 修复与功能增强。如需使用上游项目，请访问 [php-ffmpeg/php-ffmpeg](https://github.com/PHP-FFMpeg/PHP-FFMpeg)。
+
+主要增强功能：
+
+- 支持音频裁剪。
+- 支持保存为 m3u8。
+- 支持只保留音频流或视频流。
+
+转码速度仍有优化空间。
 
 [![Build Status](https://secure.travis-ci.org/PHP-FFMpeg/PHP-FFMpeg.png?branch=master)](http://travis-ci.org/PHP-FFMpeg/PHP-FFMpeg)
 
 [![SensioLabsInsight](https://insight.sensiolabs.com/projects/607f3111-e2d7-44e8-8bcc-54dd64521983/big.png)](https://insight.sensiolabs.com/projects/607f3111-e2d7-44e8-8bcc-54dd64521983)
 
-An Object-Oriented library to convert video/audio files with FFmpeg / AVConv.
+使用 FFmpeg / AVConv 转换音视频文件的面向对象 PHP 库。
 
-Check another amazing repo: [PHP FFMpeg extras](https://github.com/alchemy-fr/PHP-FFMpeg-Extras), you will find lots of Audio/Video formats there.
+更多音视频格式可参考 [PHP FFMpeg extras](https://github.com/alchemy-fr/PHP-FFMpeg-Extras)。
 
-## Your attention please
+## 使用前须知
 
-### How this library works:
+### 运行方式
 
-This library requires a working FFMpeg install. You will need both FFMpeg and FFProbe binaries to use it.
-Be sure that these binaries can be located with system PATH to get the benefit of the binary detection,
-otherwise you should have to explicitly give the binaries path on load.
+使用本库前需要安装 FFmpeg 和 FFProbe。将这两个可执行文件加入系统 PATH 后，本库可自动检测；也可以在创建实例时显式配置它们的路径。
 
-For Windows users: Please find the binaries at http://ffmpeg.zeranoe.com/builds/.
+Windows 用户需要自行安装 FFmpeg 和 FFProbe，并配置 PATH 或可执行文件路径。
 
-### Known issues:
+### 已知问题
 
-- Using rotate and resize will produce a corrupted output when using
-[libav](http://libav.org/) 0.8. The bug is fixed in version 9. This bug does not
-appear in latest ffmpeg version.
+- 在 [libav](http://libav.org/) 0.8 中，同时使用旋转与缩放可能生成损坏的输出。该问题已在 libav 9 中修复。
 
-## Installation
+## 安装
 
-The recommended way to install PHP-FFMpeg is through [Composer](https://getcomposer.org).
+推荐通过 [Composer](https://getcomposer.org) 安装：
 
 ```bash
 $ composer require turbo/php-ffmpeg
 ```
 
-## Basic Usage
+## PHP 兼容性与测试
+
+目标运行版本为 PHP 7.4–8.4，依赖由 Composer 按当前 PHP 版本解析。
+GitHub Actions 覆盖这六个版本，并分别验证最低和最新可安装依赖。
+
+```bash
+composer update
+composer test
+```
+
+X264 默认音频编码器保持 `libfaac`；使用默认配置时，FFmpeg 必须提供该编码器。
+测试显式使用 `aac`，以适配常见 FFmpeg 安装。
+
+`alchemy/binary-driver` 5.2 仍会在 PHP 8.1+ 输出部分弃用提示；测试保留这些提示，
+但不将弃用提示转换成异常。将弃用提示转换成异常的应用需要另外处理此上游依赖。
+旧 Silex 1 服务提供器保留为可选集成，不属于 PHP 7.4–8.4 的测试支持范围；
+未安装 Silex 时，其四项测试会跳过。功能测试需要 FFmpeg、FFProbe；HTTP 探测测试通过本机临时 HTTP 服务提供测试文件，不依赖外部媒体网站。
+
+`TimeCode::toSeconds()` 现在保留百分之一秒精度，返回浮点数；依赖整数返回值的调用方应显式取整。
+`saveFromDifferentCodecs()` 支持纯音频、无音轨视频和带音轨视频；输入必须具有一致的流布局。
+纯音频输出会忽略输入的视频流。拼接视频仍需调用方统一尺寸、帧率等参数。
+
+## 基本用法
 
 ```php
 
@@ -58,65 +85,56 @@ $video
     ->save(new FFMpeg\Format\Video\WebM(), 'export-webm.webm');
 ```
 
-## Documentation
+## API 文档
 
-This documentation is an introduction to discover the API. It's recommended
-to browse the source code as it is self-documented.
+以下文档介绍主要 API。更详细的行为和参数说明可参阅源码中的注释。
 
 ### FFMpeg
 
-`FFMpeg\FFMpeg` is the main object to use to manipulate medias. To build it,
-use the static `FFMpeg\FFMpeg::create`:
+`FFMpeg\FFMpeg` 是操作媒体的主要入口，使用静态方法 `FFMpeg\FFMpeg::create` 创建实例：
 
 ```php
 $ffmpeg = FFMpeg\FFMpeg::create();
 ```
 
-FFMpeg will autodetect ffmpeg and ffprobe binaries. If you want to give binary
-paths explicitly, you can pass an array as configuration. A `Psr\Logger\LoggerInterface`
-can also be passed to log binary executions.
+本库会自动检测 ffmpeg 和 ffprobe。也可以通过配置数组显式指定可执行文件路径，并传入 `Psr\Log\LoggerInterface` 实例记录执行日志。
 
 ```php
 $ffmpeg = FFMpeg\FFMpeg::create(array(
     'ffmpeg.binaries'  => '/opt/local/ffmpeg/bin/ffmpeg',
     'ffprobe.binaries' => '/opt/local/ffmpeg/bin/ffprobe',
-    'timeout'          => 3600, // The timeout for the underlying process
-    'ffmpeg.threads'   => 12,   // The number of threads that FFMpeg should use
+    'timeout'          => 3600, // 底层进程的超时时间（秒）
+    'ffmpeg.threads'   => 12,   // FFmpeg 使用的线程数
 ), $logger);
 ```
 
-### Manipulate media
+### 打开与操作媒体
 
-`FFMpeg\FFMpeg` creates media based on URIs. URIs could be either a pointer to a
-local filesystem resource, an HTTP resource or any resource supported by FFmpeg.
+`FFMpeg\FFMpeg` 根据 URI 创建媒体对象。URI 可以指向本地文件、HTTP 资源，或 FFmpeg 支持的其他资源。
 
-**Note**: To list all supported resource type of your FFmpeg build, use the
-`-protocols` command:
+可通过以下命令查看当前 FFmpeg 支持的协议：
 
 ```
 ffmpeg -protocols
 ```
 
-To open a resource, use the `FFMpeg\FFMpeg::open` method.
+使用 `FFMpeg\FFMpeg::open` 打开资源：
 
 ```php
 $ffmpeg->open('video.mpeg');
 ```
 
-Two types of media can be resolved: `FFMpeg\Media\Audio` and `FFMpeg\Media\Video`.
-A third type, `FFMpeg\Media\Frame`, is available through videos.
+打开资源后会得到 `FFMpeg\Media\Audio` 或 `FFMpeg\Media\Video` 对象。还可以从视频中提取 `FFMpeg\Media\Frame` 对象。
 
-### Video
+### 视频
 
-`FFMpeg\Media\Video` can be transcoded, ie: change codec, isolate audio or
-video. Frames can be extracted.
+`FFMpeg\Media\Video` 支持转码、更换编码器、提取音频或视频流，以及提取视频帧。
 
-##### Transcoding
+##### 转码
 
-You can transcode videos using the `FFMpeg\Media\Video:save` method. You will
-pass a `FFMpeg\Format\FormatInterface` for that.
+调用 `FFMpeg\Media\Video::save` 并传入实现 `FFMpeg\Format\FormatInterface` 的格式对象，即可转码视频。
 
-Please note that audio and video bitrate are set on the format.
+音频与视频码率均在格式对象上设置。
 
 ```php
 $format = new FFMpeg\Format\Video\X264();
@@ -132,24 +150,20 @@ $format
 $video->save($format, 'video.avi');
 ```
 
-Transcoding progress can be monitored in realtime, see Format documentation
-below for more information.
+支持实时监听转码进度，详见下方的“输出格式”说明。
 
-##### Extracting image
+##### 提取图片
 
-You can extract a frame at any timecode using the `FFMpeg\Media\Video::frame`
-method.
+使用 `FFMpeg\Media\Video::frame` 提取指定时间点的视频帧。
 
-This code returns a `FFMpeg\Media\Frame` instance corresponding to the second 42.
-You can pass any `FFMpeg\Coordinate\TimeCode` as argument, see dedicated
-documentation below for more information.
+以下示例返回第 42 秒对应的 `FFMpeg\Media\Frame` 实例。时间点由 `FFMpeg\Coordinate\TimeCode` 表示，详见下方的“坐标与时间”说明。
 
 ```php
 $frame = $video->frame(FFMpeg\Coordinate\TimeCode::fromSeconds(42));
 $frame->save('image.jpg');
 ```
 
-If you want to extract multiple images from the video, you can use the following filter:
+可以通过以下滤镜从视频中提取多张图片：
 
 ```php
 $video
@@ -160,11 +174,13 @@ $video
 $video
     ->save(new FFMpeg\Format\Video\X264(), '/path/to/new/file');
 ```
-By default, this will save the frames as `jpg` images.
 
-You are able to override this using `setFrameFileType` to save the frames in another format:
+默认保存为 `jpg` 图片。
+
+使用 `setFrameFileType` 可以修改图片格式：
+
 ```php
-$frameFileType = 'jpg'; // either 'jpg', 'jpeg' or 'png'
+$frameFileType = 'jpg'; // 可选 'jpg'、'jpeg' 或 'png'
 $filter = new ExtractMultipleFramesFilter($frameRate, $destinationFolder);
 $filter->setFrameFileType($frameFileType);
 
@@ -173,36 +189,28 @@ $video->addFilter($filter);
 
 ##### m3u8
 
+输出路径以 `.m3u8` 结尾时，会自动启用 HLS 参数，目标分片时长为 5 秒，播放列表保留所有分片。请先创建输出目录。
+
 ```php
-$m3u8FilePath = '/someWhere/for/m3u8files';
-$autoEncrypt = true;
-$format = new FFMpeg\Format\Video\M3u8($m3u8FilePath, $autoEncrypt);
-$format->setAudioCodec("aac");
-$format->setAudioChannels(2);
-$format->setVideoCodec("libx264");
-$format->setTsTime(10);
-$format->setTsName($m3u8Path."/%04d.ts");
-$format->on('progress', function ($video, $format, $percentage) {
-    var_dump( "$percentage % transcoded\n" );
-});
-$video->save($format, $m3u8Path.'/index.m3u8');
+$format = new FFMpeg\Format\Video\X264();
+$video->save($format, '/path/to/output/index.m3u8');
 ```
 
-##### Clip
+##### 裁剪
 
-Cuts the video at a desired point. Use input seeking method. It is faster option than use filter clip.
+使用 `clip()` 指定裁剪起点和可选时长。该方法修改并返回当前媒体对象。
 
 ```php
 $clip = $video->clip(FFMpeg\Coordinate\TimeCode::fromSeconds(30), FFMpeg\Coordinate\TimeCode::fromSeconds(15));
 $clip->save(new FFMpeg\Format\Video\X264(), 'video.avi');
 ```
 
-The clip filter takes two parameters:
+裁剪方法接受两个参数：
 
-- `$start`, an instance of `FFMpeg\Coordinate\TimeCode`, specifies the start point of the clip
-- `$duration`, optional, an instance of `FFMpeg\Coordinate\TimeCode`, specifies the duration of the clip
+- `$start`：`FFMpeg\Coordinate\TimeCode` 实例，指定裁剪起点。
+- `$duration`：可选的 `FFMpeg\Coordinate\TimeCode` 实例，指定裁剪时长。
 
-On clip you can apply same filters as on video. For example resizing filter.
+裁剪后仍可应用视频滤镜，例如缩放：
 
 ```php
 $clip = $video->clip(FFMpeg\Coordinate\TimeCode::fromSeconds(30), FFMpeg\Coordinate\TimeCode::fromSeconds(15));
@@ -210,51 +218,46 @@ $clip->filters()->resize(new FFMpeg\Coordinate\Dimension(320, 240), FFMpeg\Filte
 $clip->save(new FFMpeg\Format\Video\X264(), 'video.avi');
 ```
 
-##### Generate a waveform
+##### 生成波形图
 
-You can generate a waveform of an audio file using the `FFMpeg\Media\Audio::waveform`
-method.
+使用 `FFMpeg\Media\Audio::waveform` 生成音频波形图。
 
-This code returns a `FFMpeg\Media\Waveform` instance.
-You can optionally pass dimensions as the first two arguments and an array of hex string colors for ffmpeg to use for the waveform, see dedicated
-documentation below for more information.
+该方法返回 `FFMpeg\Media\Waveform` 实例。前两个参数可指定宽度与高度，第三个参数为十六进制颜色字符串数组。
 
-The output file MUST use the PNG extension.
+输出文件必须使用 PNG 扩展名。
 
 ```php
 $waveform = $audio->waveform(640, 120, array('#00FF00'));
 $waveform->save('waveform.png');
 ```
 
-If you want to get a waveform from a video, convert it in an audio file first.
+如需从视频生成波形图，先提取音频：
 
 ```php
-// Open your video file
+// 打开视频文件
 $video = $ffmpeg->open( 'video.mp4' );
 
-// Set an audio format
+// 设置音频输出格式
 $audio_format = new FFMpeg\Format\Audio\Mp3();
 
-// Extract the audio into a new file as mp3
+// 将音频提取为 MP3 文件
 $video->save($audio_format, 'audio.mp3');
 
-// Set the audio file
+// 打开音频文件
 $audio = $ffmpeg->open( 'audio.mp3' );
 
-// Create the waveform
+// 生成波形图
 $waveform = $audio->waveform();
 $waveform->save( 'waveform.png' );
 ```
 
-##### Filters
+##### 滤镜
 
-You can apply filters on `FFMpeg\Media\Video` with the `FFMpeg\Media\Video::addFilter`
-method. Video accepts Audio and Video filters.
+使用 `FFMpeg\Media\Video::addFilter` 添加滤镜。视频对象同时接受音频和视频滤镜。
 
-You can build your own filters and some are bundled in PHP-FFMpeg - they are
-accessible through the `FFMpeg\Media\Video::filters` method.
+可以自行实现滤镜，也可以通过 `FFMpeg\Media\Video::filters` 使用内置滤镜。
 
-Filters are chainable
+滤镜支持链式调用：
 
 ```php
 $video
@@ -264,53 +267,53 @@ $video
     ->synchronize();
 ```
 
-###### Rotate
+###### 旋转
 
-Rotates a video to a given angle.
+将视频旋转至指定角度：
 
 ```php
 $video->filters()->rotate($angle);
 ```
 
-The `$angle` parameter must be one of the following constants :
+`$angle` 必须使用以下常量之一：
 
-- `FFMpeg\Filters\Video\RotateFilter::ROTATE_90`: 90° clockwise
-- `FFMpeg\Filters\Video\RotateFilter::ROTATE_180`: 180°
-- `FFMpeg\Filters\Video\RotateFilter::ROTATE_270`: 90° counterclockwise
+- `FFMpeg\Filters\Video\RotateFilter::ROTATE_90`：顺时针旋转 90°。
+- `FFMpeg\Filters\Video\RotateFilter::ROTATE_180`：旋转 180°。
+- `FFMpeg\Filters\Video\RotateFilter::ROTATE_270`：逆时针旋转 90°。
 
-###### Resize
+###### 缩放
 
-Resizes a video to a given size.
+将视频缩放到指定尺寸：
 
 ```php
 $video->filters()->resize($dimension, $mode, $useStandards);
 ```
 
-The resize filter takes three parameters:
+缩放滤镜接受三个参数：
 
-- `$dimension`, an instance of `FFMpeg\Coordinate\Dimension`
-- `$mode`, one of the constants `FFMpeg\Filters\Video\ResizeFilter::RESIZEMODE_*` constants
-- `$useStandards`, a boolean to force the use of the nearest aspect ratio standard.
+- `$dimension`：`FFMpeg\Coordinate\Dimension` 实例。
+- `$mode`：`FFMpeg\Filters\Video\ResizeFilter::RESIZEMODE_*` 常量之一。
+- `$useStandards`：布尔值，是否强制使用最接近的标准宽高比。
 
-If you want a video in a non-standard ratio, you can use the padding filter to resize your video in the desired size, and wrap it into black bars.
+若需要非标准宽高比，可以使用填充滤镜，将画面放入指定尺寸的黑边区域：
 
 ```php
 $video->filters()->pad($dimension);
 ```
 
-The pad filter takes one parameter:
+填充滤镜接受一个参数：
 
-- `$dimension`, an instance of `FFMpeg\Coordinate\Dimension`
+- `$dimension`：`FFMpeg\Coordinate\Dimension` 实例。
 
-Don't forget to save it afterwards.
+应用滤镜后需要保存输出：
 
 ```php
 $video->save(new FFMpeg\Format\Video\X264(), $new_file);
 ```
 
-###### Watermark
+###### 水印
 
-Watermark a video with a given image.
+使用指定图片为视频添加水印：
 
 ```php
 $video
@@ -322,10 +325,10 @@ $video
     ));
 ```
 
-The watermark filter takes two parameters:
+水印滤镜接受两个参数：
 
-`$watermarkPath`, the path to your watermark file.
-`$coordinates`, an array defining how you want your watermark positioned. You can use relative positioning as demonstrated above or absolute as such:
+- `$watermarkPath`：水印图片路径。
+- `$coordinates`：定义水印位置的数组。可以使用上例中的相对定位，也可以使用以下绝对定位：
 
 ```php
 $video
@@ -337,66 +340,64 @@ $video
     ));
 ```
 
-###### Framerate
+###### 帧率
 
-Changes the frame rate of the video.
+修改视频帧率：
 
 ```php
 $video->filters()->framerate($framerate, $gop);
 ```
 
-The framerate filter takes two parameters:
+帧率滤镜接受两个参数：
 
-- `$framerate`, an instance of `FFMpeg\Coordinate\Framerate`
-- `$gop`, a [GOP](https://wikipedia.org/wiki/Group_of_pictures) value (integer)
+- `$framerate`：`FFMpeg\Coordinate\FrameRate` 实例。
+- `$gop`：整数形式的 [GOP（图像组）](https://wikipedia.org/wiki/Group_of_pictures) 值。
 
-###### Synchronize
+###### 音视频同步
 
-Synchronizes audio and video.
+同步音频与视频：
 
-Some containers may use a delay that results in desynchronized outputs. This
-filter solves this issue.
+某些容器的时间延迟可能导致输出音画不同步，可使用此滤镜处理。
 
 ```php
 $video->filters()->synchronize();
 ```
 
-###### Clip
+###### 裁剪
 
-Cuts the video at a desired point.
+从指定时间点裁剪视频：
 
 ```php
 $video->filters()->clip(FFMpeg\Coordinate\TimeCode::fromSeconds(30), FFMpeg\Coordinate\TimeCode::fromSeconds(15));
 ```
 
-The clip filter takes two parameters:
+裁剪滤镜接受两个参数：
 
-- `$start`, an instance of `FFMpeg\Coordinate\TimeCode`, specifies the start point of the clip
-- `$duration`, optional, an instance of `FFMpeg\Coordinate\TimeCode`, specifies the duration of the clip
+- `$start`：`FFMpeg\Coordinate\TimeCode` 实例，指定裁剪起点。
+- `$duration`：可选的 `FFMpeg\Coordinate\TimeCode` 实例，指定裁剪时长。
 
-###### Crop
+###### 画面裁切
 
-Crops the video based on a width and height(a `Point`)
+根据起点和目标宽高裁切画面：
 
 ```php
 $video->filters()->crop(new FFMpeg\Coordinate\Point("t*100", 0, true), new FFMpeg\Coordinate\Dimension(200, 600));
 ```
 
-It takes two parameters:
-- `$point`, an instance of `FFMpeg\Coordinate\Point`, specifies the point to crop
-- `$dimension`, an instance of `FFMpeg\Coordinate\Dimension`, specifies the dimension of the output video
+该滤镜接受两个参数：
 
-### Audio
+- `$point`：`FFMpeg\Coordinate\Point` 实例，指定裁切起点。
+- `$dimension`：`FFMpeg\Coordinate\Dimension` 实例，指定输出尺寸。
 
-`FFMpeg\Media\Audio` can be transcoded too, ie: change codec, isolate audio or
-video. Frames can be extracted.
+### 音频
 
-##### Transcoding
+`FFMpeg\Media\Audio` 支持音频转码和更换编码器。
 
-You can transcode audios using the `FFMpeg\Media\Audio:save` method. You will
-pass a `FFMpeg\Format\FormatInterface` for that.
+##### 转码
 
-Please note that audio kilobitrate is set on the audio format.
+调用 `FFMpeg\Media\Audio::save` 并传入实现 `FFMpeg\Format\FormatInterface` 的格式对象，即可转码音频。
+
+音频码率在音频格式对象上设置，单位为 kb/s。
 
 ```php
 $ffmpeg = FFMpeg\FFMpeg::create();
@@ -414,77 +415,69 @@ $format
 $audio->save($format, 'track.flac');
 ```
 
-Transcoding progress can be monitored in realtime, see Format documentation
-below for more information.
+支持实时监听转码进度，详见下方的“输出格式”说明。
 
-##### Filters
+##### 滤镜
 
-You can apply filters on `FFMpeg\Media\Audio` with the `FFMpeg\Media\Audio::addFilter`
-method. It only accepts audio filters.
+使用 `FFMpeg\Media\Audio::addFilter` 添加滤镜。音频对象仅接受音频滤镜。
 
-You can build your own filters and some are bundled in PHP-FFMpeg - they are
-accessible through the `FFMpeg\Media\Audio::filters` method.
+可以自行实现滤镜，也可以通过 `FFMpeg\Media\Audio::filters` 使用内置滤镜。
 
-##### Clipping
-Cuts the audio at a desired point.
+##### 裁剪
+
+从指定时间点裁剪音频：
 
 ```php
 $audio->filters()->clip(FFMpeg\Coordinate\TimeCode::fromSeconds(30), FFMpeg\Coordinate\TimeCode::fromSeconds(15));
 ```
 
+###### 元数据
 
-###### Metadata
-
-Add metadata to audio files. Just pass an array of key=value pairs of all
-metadata you would like to add. If no arguments are passed into the filter
-all metadata will be removed from input file. Currently supported data is
-title, artist, album, artist, composer, track, year, description, artwork
+传入键值对数组，为音频添加元数据。不传参数时，会移除输入文件的元数据和视频流。支持的字段包括 `title`、`artist`、`album`、`composer`、`track`、`year`、`description` 和 `artwork`。
 
 ```php
 $audio->filters()->addMetadata(["title" => "Some Title", "track" => 1]);
 
-//remove all metadata and video streams from audio file
+// 移除音频文件中的元数据和视频流
 $audio->filters()->addMetadata();
 ```
 
-Add artwork to the audio file
+为音频文件添加封面：
+
 ```php
 $audio->filters()->addMetadata(["artwork" => "/path/to/image/file.jpg"]);
 ```
-NOTE: at present ffmpeg (version 3.2.2) only supports artwork output for .mp3
-files
+历史兼容性说明：FFmpeg 3.2.2 的此封面用法仅支持 MP3 输出。
 
-###### Resample
+###### 重采样
 
-Resamples an audio file.
+对音频重新采样：
 
 ```php
 $audio->filters()->resample($rate);
 ```
 
-The resample filter takes two parameters :
+重采样滤镜接受一个参数：
 
-- `$rate`, a valid audio sample rate value (integer)
+- `$rate`：有效的音频采样率，整数。
 
-#### Frame
+#### 视频帧
 
-A frame is an image at a timecode of a video; see documentation above about
-frame extraction.
+视频帧是视频在某个时间点的图像，提取方式见上方说明。
 
-You can save frames using the `FFMpeg\Media\Frame::save` method.
+使用 `FFMpeg\Media\Frame::save` 保存视频帧：
 
 ```php
 $frame->save('target.jpg');
 ```
 
-This method has a second optional boolean parameter. Set it to true to get
-accurate images; it takes more time to execute.
+该方法的第二个参数为可选布尔值。设为 `true` 时使用精确定位，但执行时间更长。
 
-#### Gif
+#### GIF
 
-A gif is an animated image extracted from a sequence of the video.
+GIF 是从视频片段中提取的动画图像。
 
-You can save gif files using the `FFMpeg\Media\Gif::save` method.
+使用 `FFMpeg\Media\Gif::save` 保存 GIF 文件：
 
 ```php
 $video = $ffmpeg->open( '/path/to/video' );
@@ -493,43 +486,41 @@ $video
     ->save($new_file);
 ```
 
-This method has a third optional boolean parameter, which is the duration of the animation.
-If you don't set it, you will get a fixed gif image.
+`Video::gif()` 的第三个参数是可选的动画时长；不指定时会生成静态 GIF。
 
-#### Concatenation
+#### 拼接
 
-This feature allows you to generate one audio or video file, based on multiple sources.
+拼接功能可将多个输入文件合并成一个音频或视频文件。
 
-There are two ways to concatenate videos, depending on the codecs of the sources.
-If your sources have all been encoded with the same codec, you will want to use the `FFMpeg\Media\Concatenate::saveFromSameCodecs` which has way better performances.
-If your sources have been encoded with different codecs, you will want to use the `FFMpeg\Media\Concatenate::saveFromDifferentCodecs`.
+根据输入文件的编码情况选择拼接方法：
 
-The first function will use the initial codec as the one for the generated file.
-With the second function, you will be able to choose which codec you want for the generated file.
+- 输入编码一致时，使用 `FFMpeg\Media\Concat::saveFromSameCodecs`，配合流复制可提高速度。
+- 输入编码不同时，使用 `FFMpeg\Media\Concat::saveFromDifferentCodecs`，并指定输出格式。
 
-You also need to pay attention to the fact that, when using the saveFromDifferentCodecs method,
-your files MUST have video and audio streams.
+前一种方法可以沿用输入编码；后一种方法可通过格式对象选择输出编码。
 
-In both cases, you will have to provide an array of files.
+`saveFromDifferentCodecs()` 支持纯音频、无音轨视频和带音轨视频；所有输入必须具有一致的流布局。纯音频输出会忽略输入的视频流。拼接视频仍需调用方统一尺寸、帧率等参数。
 
-To concatenate videos encoded with the same codec, do as follow:
+两种方法都需要传入文件路径数组。
+
+拼接编码一致的视频：
 
 ```php
-// In order to instantiate the video object, you HAVE TO pass a path to a valid video file.
-// We recommend that you put there the path of any of the video you want to use in this concatenation.
+// 创建视频对象时，必须传入有效的视频文件路径。
+// 可以使用待拼接视频中的任意一个文件。
 $video = $ffmpeg->open( '/path/to/video' );
 $video
     ->concat(array('/path/to/video1', '/path/to/video2'))
     ->saveFromSameCodecs('/path/to/new_file', TRUE);
 ```
 
-The boolean parameter of the save function allows you to use the copy parameter which accelerates drastically the generation of the encoded file.
+`saveFromSameCodecs()` 的布尔参数设为 `true` 时使用流复制，可显著减少处理时间。
 
-To concatenate videos encoded with the same codec, do as follow:
+拼接编码不同的视频：
 
 ```php
-// In order to instantiate the video object, you HAVE TO pass a path to a valid video file.
-// We recommend that you put there the path of any of the video you want to use in this concatenation.
+// 创建视频对象时，必须传入有效的视频文件路径。
+// 可以使用待拼接视频中的任意一个文件。
 $video = $ffmpeg->open( '/path/to/video' );
 
 $format = new FFMpeg\Format\Video\X264();
@@ -540,18 +531,15 @@ $video
     ->saveFromDifferentCodecs($format, '/path/to/new_file');
 ```
 
-More details about concatenation in FFMPEG can be found [here](https://trac.ffmpeg.org/wiki/Concatenate), [here](https://ffmpeg.org/ffmpeg-formats.html#concat-1) and [here](https://ffmpeg.org/ffmpeg.html#Stream-copy).
+更多细节可参阅 FFmpeg 的[拼接说明](https://trac.ffmpeg.org/wiki/Concatenate)、[concat 解复用器](https://ffmpeg.org/ffmpeg-formats.html#concat-1)和[流复制文档](https://ffmpeg.org/ffmpeg.html#Stream-copy)。
 
-#### Formats
+#### 输出格式
 
-A format implements `FFMpeg\Format\FormatInterface`. To save to a video file,
-use `FFMpeg\Format\VideoInterface`, and `FFMpeg\Format\AudioInterface` for
-audio files.
+格式对象实现 `FFMpeg\Format\FormatInterface`。视频输出使用 `FFMpeg\Format\VideoInterface`，音频输出使用 `FFMpeg\Format\AudioInterface`。
 
-A format can also extend `FFMpeg\Format\ProgressableInterface` to get realtime
-information about the transcoding.
+格式还可以实现 `FFMpeg\Format\ProgressableInterface`，提供实时转码进度。
 
-Predefined formats already provide progress information as events.
+内置格式已通过事件提供进度信息：
 
 ```php
 $format = new FFMpeg\Format\Video\X264();
@@ -562,13 +550,13 @@ $format->on('progress', function ($video, $format, $percentage) {
 $video->save($format, 'video.avi');
 ```
 
-The callback provided for the event can be any callable.
+事件回调可以使用任意有效的 callable。
 
-##### Add additional parameters
+##### 添加额外参数
 
-You can add additional parameters to your encoding requests based on your video format.
+可以通过视频格式对象为编码命令添加额外参数。
 
-The argument of the setAdditionalParameters method is an array.
+`setAdditionalParameters()` 接受数组：
 
 ```php
 $format = new FFMpeg\Format\Video\X264();
@@ -576,11 +564,9 @@ $format->setAdditionalParameters(array('foo', 'bar'));
 $video->save($format, 'video.avi');
 ```
 
-##### Create your own format
+##### 自定义输出格式
 
-The easiest way to create a format is to extend the abstract
-`FFMpeg\Format\Video\DefaultVideo` and `FFMpeg\Format\Audio\DefaultAudio`.
-and implement the following methods.
+可以继承抽象类 `FFMpeg\Format\Video\DefaultVideo` 或 `FFMpeg\Format\Audio\DefaultAudio`，并实现所需的方法：
 
 ```php
 class CustomWMVFormat extends FFMpeg\Format\Video\DefaultVideo
@@ -609,50 +595,48 @@ class CustomWMVFormat extends FFMpeg\Format\Video\DefaultVideo
 }
 ```
 
-#### Coordinates
+#### 坐标与时间
 
-FFMpeg uses many units for time and space coordinates.
+FFMpeg 使用以下类型表示空间与时间：
 
-- `FFMpeg\Coordinate\AspectRatio` represents an aspect ratio.
-- `FFMpeg\Coordinate\Dimension` represent a dimension.
-- `FFMpeg\Coordinate\FrameRate` represent a framerate.
-- `FFMpeg\Coordinate\Point` represent a point. (Supports dynamic points since v0.10.0)
-- `FFMpeg\Coordinate\TimeCode` represent a timecode.
+- `FFMpeg\Coordinate\AspectRatio`：宽高比。
+- `FFMpeg\Coordinate\Dimension`：尺寸。
+- `FFMpeg\Coordinate\FrameRate`：帧率。
+- `FFMpeg\Coordinate\Point`：坐标点，自 v0.10.0 起支持动态表达式。
+- `FFMpeg\Coordinate\TimeCode`：时间码。
 
 ### FFProbe
 
-`FFMpeg\FFProbe` is used internally by `FFMpeg\FFMpeg` to probe medias. You can
-also use it to extract media metadata.
+`FFMpeg\FFMpeg` 内部使用 `FFMpeg\FFProbe` 探测媒体。也可以单独使用 FFProbe 提取媒体元数据。
 
 ```php
 $ffprobe = FFMpeg\FFProbe::create();
 $ffprobe
-    ->streams('/path/to/video/mp4') // extracts streams informations
-    ->videos()                      // filters video streams
-    ->first()                       // returns the first video stream
-    ->get('codec_name');            // returns the codec_name property
+    ->streams('/path/to/video/mp4') // 提取媒体流信息
+    ->videos()                      // 筛选视频流
+    ->first()                       // 返回第一个视频流
+    ->get('codec_name');            // 返回 codec_name 属性
 ```
 
 ```php
 $ffprobe = FFMpeg\FFProbe::create();
 $ffprobe
-    ->format('/path/to/video/mp4') // extracts file informations
-    ->get('duration');             // returns the duration property
+    ->format('/path/to/video/mp4') // 提取文件信息
+    ->get('duration');             // 返回 duration 属性
 ```
 
-### Validating media files
+### 验证媒体文件
 
-(since 0.10.0)
-You can validate media files using PHP-FFMpeg's FFProbe wrapper.
+自 0.10.0 起，可通过本库的 FFProbe 封装验证媒体文件：
 
 ```php
 $ffprobe = FFMpeg\FFProbe::create();
-$ffprobe->isValid('/path/to/file/to/check'); // returns bool
+$ffprobe->isValid('/path/to/file/to/check'); // 返回布尔值
 ```
 
-## Using with Silex Microframework
+## 集成 Silex 微框架
 
-The service provider is easy to set up:
+旧 Silex 1 集成为可选功能，不在 PHP 7.4–8.4 的测试支持范围内。安装相应依赖后，可注册服务提供器：
 
 ```php
 $app = new Silex\Application();
@@ -661,7 +645,7 @@ $app->register(new FFMpeg\FFMpegServiceProvider());
 $video = $app['ffmpeg']->open('video.mpeg');
 ```
 
-Available options are as follow:
+可用配置如下：
 
 ```php
 $app->register(new FFMpeg\FFMpegServiceProvider(), array(
@@ -676,14 +660,14 @@ $app->register(new FFMpeg\FFMpegServiceProvider(), array(
 ));
 ```
 
-## License
+## 许可证
 
-This project is licensed under the [MIT license](http://opensource.org/licenses/MIT).
+本项目使用 [MIT 许可证](http://opensource.org/licenses/MIT)。
 
-Music: "Favorite Secrets" by Waylon Thornton
-From the Free Music Archive
-[CC BY NC SA](http://creativecommons.org/licenses/by-nc-sa/3.0/us/)
+测试音乐：“Favorite Secrets”，作者 Waylon Thornton。
+来源：Free Music Archive。
+许可：[CC BY NC SA](http://creativecommons.org/licenses/by-nc-sa/3.0/us/)。
 
-Music: "Siesta" by Jahzzar
-From the Free Music Archive
-[CC BY SA](https://creativecommons.org/licenses/by-sa/3.0/)
+测试音乐：“Siesta”，作者 Jahzzar。
+来源：Free Music Archive。
+许可：[CC BY SA](https://creativecommons.org/licenses/by-sa/3.0/)。

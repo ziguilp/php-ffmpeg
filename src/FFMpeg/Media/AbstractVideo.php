@@ -86,7 +86,9 @@ abstract class AbstractVideo extends Audio
                     // FFMpeg\Format\ProgressListener\AbstractProgressListener class
                     foreach ($filters as $filter) {
                         if ($filter instanceof ClipFilter) {
-                            $duration = $filter->getDuration()->toSeconds();
+                            $duration = $filter->getDuration() !== null
+                                ? $filter->getDuration()->toSeconds()
+                                : max(0, (float) $this->ffprobe->format($this->pathfile)->get('duration') - $filter->getStart()->toSeconds());
                             break;
                         }
                     }
@@ -205,7 +207,9 @@ abstract class AbstractVideo extends Audio
 
         // Merge Filters into one command
         $videoFilterVars = $videoFilterProcesses = array();
-        for ($i = 0; $i < count($commands); $i++) {
+        $remainingCommands = array();
+        $commandCount = count($commands);
+        for ($i = 0; $i < $commandCount; $i++) {
             $command = $commands[$i];
             if ($command === '-vf') {
                 $commandSplits = explode(";", $commands[$i + 1]);
@@ -227,11 +231,12 @@ abstract class AbstractVideo extends Audio
                         }
                     }
                 }
-                unset($commands[$i]);
-                unset($commands[$i + 1]);
                 $i++;
+            } else {
+                $remainingCommands[] = $command;
             }
         }
+        $commands = $remainingCommands;
         $videoFilterCommands = $videoFilterVars;
         $lastInput = 'in';
         foreach ($videoFilterProcesses as $i => $process) {

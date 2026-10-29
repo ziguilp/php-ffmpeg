@@ -1,4 +1,14 @@
 <?php
+/*
+ * @Author        : turbo 664120459@qq.com
+ * @Date          : 2026-10-28 23:37:28
+ * @LastEditors   : turbo 664120459@qq.com
+ * @LastEditTime  : 2026-10-29 11:37:04
+ * @FilePath      : /php-ffmpeg/src/FFMpeg/Media/Concat.php
+ * @Description   : 
+ * 
+ * Copyright (c) 2026 by ${git_name}, All Rights Reserved. 
+ */
 
 /*
  * This file is part of PHP-FFmpeg.
@@ -17,11 +27,8 @@ use FFMpeg\Filters\Concat\ConcatFilterInterface;
 use FFMpeg\Filters\Concat\ConcatFilters;
 use FFMpeg\Driver\FFMpegDriver;
 use FFMpeg\FFProbe;
-use FFMpeg\Filters\Audio\SimpleFilter;
 use FFMpeg\Exception\RuntimeException;
 use FFMpeg\Format\FormatInterface;
-use FFMpeg\Filters\FilterInterface;
-use FFMpeg\Format\ProgressableInterface;
 use FFMpeg\Format\AudioInterface;
 use FFMpeg\Format\VideoInterface;
 use Neutron\TemporaryFilesystem\Manager as FsManager;
@@ -88,21 +95,22 @@ class Concat extends AbstractMediaType
 
         // Create the file which will contain the list of videos
         $fs = FsManager::create();
+        /** @var string $sourcesFile */
         $sourcesFile = $fs->createTemporaryFile('ffmpeg-concat');
 
         // Set the content of this file
         $fileStream = @fopen($sourcesFile, 'w');
 
-        if($fileStream === false) {
-            throw new ExecutionFailureException('Cannot open the temporary file.');
+        if ($fileStream === false) {
+            throw new ExecutionFailureException('ffmpeg', 'open concat list', 'Cannot open the temporary file.');
         }
 
         $count_videos = 0;
-        if(is_array($this->sources) && (count($this->sources) > 0)) {
+        if (is_array($this->sources) && (count($this->sources) > 0)) {
             foreach ($this->sources as $videoPath) {
                 $line = "";
 
-                if($count_videos != 0)
+                if ($count_videos != 0)
                     $line .= "\n";
 
                 $line .= "file " . addcslashes($videoPath, '\'"\\\0 ');
@@ -111,20 +119,23 @@ class Concat extends AbstractMediaType
 
                 $count_videos++;
             }
-        }
-        else {
+        } else {
             throw new InvalidArgumentException('The list of videos is not a valid array.');
         }
         fclose($fileStream);
 
 
         $commands = array(
-            '-f', 'concat', '-safe', '0',
-            '-i', $sourcesFile
+            '-f',
+            'concat',
+            '-safe',
+            '0',
+            '-i',
+            $sourcesFile
         );
 
         // Check if stream copy is activated
-        if($streamCopy === TRUE) {
+        if ($streamCopy === TRUE) {
             $commands[] = '-c';
             $commands[] = 'copy';
         }
@@ -170,58 +181,57 @@ class Concat extends AbstractMediaType
          */
 
         // Check the validity of the parameter
-        if(!is_array($this->sources) || (count($this->sources) == 0)) {
+        if (!is_array($this->sources) || (count($this->sources) == 0)) {
             throw new InvalidArgumentException('The list of videos is not a valid array.');
         }
 
-        // Create the commands variable
         $commands = array();
-
-        // Prepare the parameters
-        $nbSources = 0;
-        $files = array();
-
-        // For each source, check if this is a legit file
-        // and prepare the parameters
-        foreach ($this->sources as $videoPath) {
-            $files[] = '-i';
-            $files[] = $videoPath;
-            $nbSources++;
+        $hasVideo = $hasAudio = null;
+        $inputs = array();
+        foreach ($this->sources as $source) {
+            $streams = $this->ffprobe->streams($source);
+            $video = count($streams->videos()) > 0;
+            $audio = count($streams->audios()) > 0;
+            // Audio formats intentionally discard video streams.
+            if ($format instanceof AudioInterface && !$format instanceof VideoInterface) {
+                $video = false;
+            }
+            if (!$video && !$audio) {
+                throw new InvalidArgumentException('Each source must contain a stream supported by the output format.');
+            }
+            if ($hasVideo !== null && ($hasVideo !== $video || $hasAudio !== $audio)) {
+                throw new InvalidArgumentException('All sources must have the same audio/video stream layout.');
+            }
+            $hasVideo = $video;
+            $hasAudio = $audio;
+            $commands[] = '-i';
+            $commands[] = $source;
+            $input = count($inputs);
+            $inputs[] = ($video ? '[' . $input . ':v:0] ' : '') . ($audio ? '[' . $input . ':a:0] ' : '');
         }
 
-        $commands = array_merge($commands, $files);
-
-        // Set the parameters of the request
+        $labels = ($hasVideo ? ' [v]' : '') . ($hasAudio ? ' [a]' : '');
         $commands[] = '-filter_complex';
-
-        $complex_filter = '';
-        for($i=0; $i<$nbSources; $i++) {
-            $complex_filter .= '['.$i.':v:0] ['.$i.':a:0] ';
+        $commands[] = implode('', $inputs) . 'concat=n=' . count($inputs)
+            . ':v=' . (int) $hasVideo . ':a=' . (int) $hasAudio . $labels;
+        foreach (array_filter(array($hasVideo ? '[v]' : null, $hasAudio ? '[a]' : null)) as $label) {
+            $commands[] = '-map';
+            $commands[] = $label;
         }
-        $complex_filter .= 'concat=n='.$nbSources.':v=1:a=1 [v] [a]';
 
-        $commands[] = $complex_filter;
-        $commands[] = '-map';
-        $commands[] = '[v]';
-        $commands[] = '-map';
-        $commands[] = '[a]';
-
-        // Prepare the filters
-        $filters = clone $this->filters;
-        $filters->add(new SimpleFilter($format->getExtraParams(), 10));
-
+        // Format parameters are command arguments, not Audio filters applied to a Concat object.
+        $commands = array_merge($commands, $format->getExtraParams());
         if ($this->driver->getConfiguration()->has('ffmpeg.threads')) {
-            $filters->add(new SimpleFilter(array('-threads', $this->driver->getConfiguration()->get('ffmpeg.threads'))));
+            $commands[] = '-threads';
+            $commands[] = $this->driver->getConfiguration()->get('ffmpeg.threads');
         }
-        if ($format instanceof VideoInterface) {
-            if (null !== $format->getVideoCodec()) {
-                $filters->add(new SimpleFilter(array('-vcodec', $format->getVideoCodec())));
-            }
+        if ($hasVideo && $format instanceof VideoInterface && $format->getVideoCodec() !== null) {
+            $commands[] = '-vcodec';
+            $commands[] = $format->getVideoCodec();
         }
-        if ($format instanceof AudioInterface) {
-            if (null !== $format->getAudioCodec()) {
-                $filters->add(new SimpleFilter(array('-acodec', $format->getAudioCodec())));
-            }
+        if ($hasAudio && $format instanceof AudioInterface && $format->getAudioCodec() !== null) {
+            $commands[] = '-acodec';
+            $commands[] = $format->getAudioCodec();
         }
 
         // Add the filters
@@ -229,7 +239,7 @@ class Concat extends AbstractMediaType
             $commands = array_merge($commands, $filter->apply($this));
         }
 
-        if ($format instanceof AudioInterface) {
+        if ($hasAudio && $format instanceof AudioInterface) {
             if (null !== $format->getAudioKiloBitrate()) {
                 $commands[] = '-b:a';
                 $commands[] = $format->getAudioKiloBitrate() . 'k';
@@ -241,7 +251,11 @@ class Concat extends AbstractMediaType
         }
 
         // If the user passed some additional parameters
-        if ($format instanceof VideoInterface) {
+        if ($hasVideo && $format instanceof VideoInterface) {
+            if ($format->getKiloBitrate() !== null) {
+                $commands[] = '-b:v';
+                $commands[] = $format->getKiloBitrate() . 'k';
+            }
             if (null !== $format->getAdditionalParameters()) {
                 foreach ($format->getAdditionalParameters() as $additionalParameter) {
                     $commands[] = $additionalParameter;

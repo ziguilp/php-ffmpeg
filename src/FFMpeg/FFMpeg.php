@@ -111,7 +111,7 @@ class FFMpeg
      *
      * @return FFMpeg
      */
-    public static function create($configuration = array(), LoggerInterface $logger = null, FFProbe $probe = null)
+    public static function create($configuration = array(), ?LoggerInterface $logger = null, ?FFProbe $probe = null)
     {
         if (null === $probe) {
             $probe = FFProbe::create($configuration, $logger, null);

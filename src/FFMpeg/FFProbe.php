@@ -217,7 +217,7 @@ class FFProbe
      *
      * @return FFProbe
      */
-    public static function create($configuration = array(), LoggerInterface $logger = null, Cache $cache = null)
+    public static function create($configuration = array(), ?LoggerInterface $logger = null, ?Cache $cache = null)
     {
         if (null === $cache) {
             $cache = new ArrayCache();

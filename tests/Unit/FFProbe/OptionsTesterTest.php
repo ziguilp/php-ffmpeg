@@ -8,19 +8,17 @@ use FFMpeg\FFProbe\OptionsTester;
 
 class OptionsTesterTest extends TestCase
 {
-    /**
-     * @expectedException FFMpeg\Exception\RuntimeException
-     * @expectedExceptionMessage Your FFProbe version is too old and does not support `-help` option, please upgrade.
-     */
     public function testHasOptionWithOldFFProbe()
     {
+        $this->expectException('FFMpeg\Exception\RuntimeException');
+        $this->expectExceptionMessage('Your FFProbe version is too old and does not support `-help` option, please upgrade.');
         $cache = $this->getCacheMock();
 
         $ffprobe = $this->getFFProbeDriverMock();
         $ffprobe->expects($this->once())
             ->method('command')
             ->with(array('-help', '-loglevel', 'quiet'))
-            ->will($this->throwException(new ExecutionFailureException('Failed to execute')));
+            ->will($this->throwException(new ExecutionFailureException('Failed to execute', 'test command')));
 
         $tester = new OptionsTester($ffprobe, $cache);
         $tester->has('-print_format');
@@ -74,13 +72,9 @@ class OptionsTesterTest extends TestCase
             ->method('fetch')
             ->will($this->returnValue($data));
 
-        $cache->expects($this->at(0))
+        $cache->expects($this->exactly(2))
             ->method('contains')
-            ->will($this->returnValue(false));
-
-        $cache->expects($this->at(1))
-            ->method('contains')
-            ->will($this->returnValue(true));
+            ->willReturnOnConsecutiveCalls(false, true);
 
         $cache->expects($this->once())
             ->method('save');

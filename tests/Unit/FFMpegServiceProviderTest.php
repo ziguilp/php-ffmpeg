@@ -8,6 +8,13 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 
 class FFMpegServiceProviderTest extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        if (!class_exists(Application::class)) {
+            $this->markTestSkipped('The legacy Silex 1 integration requires silex/silex.');
+        }
+    }
+
     public function testWithConfig()
     {
         $app = new Application();
@@ -51,7 +58,8 @@ class FFMpegServiceProviderTest extends BaseTestCase
             )
         ));
 
-        $this->setExpectedException('FFMpeg\Exception\ExecutableNotFoundException', 'Unable to load FFMpeg');
+        $this->expectException('FFMpeg\Exception\ExecutableNotFoundException');
+        $this->expectExceptionMessage('Unable to load FFMpeg');
         $app['ffmpeg'];
     }
 
@@ -64,7 +72,8 @@ class FFMpegServiceProviderTest extends BaseTestCase
             )
         ));
 
-        $this->setExpectedException('FFMpeg\Exception\ExecutableNotFoundException', 'Unable to load FFProbe');
+        $this->expectException('FFMpeg\Exception\ExecutableNotFoundException');
+        $this->expectExceptionMessage('Unable to load FFProbe');
         $app['ffmpeg.ffprobe'];
     }
 }

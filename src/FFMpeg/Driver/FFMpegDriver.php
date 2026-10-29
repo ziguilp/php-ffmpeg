@@ -36,7 +36,7 @@ class FFMpegDriver extends AbstractBinary
      *
      * @return FFMpegDriver
      */
-    public static function create(LoggerInterface $logger = null, $configuration = array())
+    public static function create(?LoggerInterface $logger = null, $configuration = array())
     {
         if (!$configuration instanceof ConfigurationInterface) {
             $configuration = new Configuration($configuration);

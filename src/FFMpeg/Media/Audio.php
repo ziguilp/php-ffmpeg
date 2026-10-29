@@ -249,7 +249,7 @@ class Audio extends AbstractStreamableMedia
      * @param TimeCode $duration Duration
      * @return \FFMpeg\Media\Clip
      */
-    public function clip(TimeCode $start, TimeCode $duration = null)
+    public function clip(TimeCode $start, ?TimeCode $duration = null)
     {
         $this->start = $start;
         $this->duration = $duration;

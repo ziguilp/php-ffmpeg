@@ -2,7 +2,16 @@
     "name": "turbo/php-ffmpeg",
     "type": "library",
     "description": "基于php-ffmpeg/php-ffmpeg，增加一些功能和支持m3u8",
-    "keywords": ["video processing", "video", "audio processing", "audio", "avconv", "ffmpeg", "avprobe", "ffprobe"],
+    "keywords": [
+        "video processing",
+        "video",
+        "audio processing",
+        "audio",
+        "avconv",
+        "ffmpeg",
+        "avprobe",
+        "ffprobe"
+    ],
     "license": "MIT",
     "authors": [
         {
@@ -37,19 +46,19 @@
         }
     ],
     "require": {
-        "php": "^5.3.9 || ^7.0",
-        "alchemy/binary-driver": "^1.5 || ~2.0.0 || ^5.0",
-        "doctrine/cache": "^1.0",
-        "evenement/evenement": "^3.0 || ^2.0 || ^1.0",
-        "neutron/temporary-filesystem": "^2.1.1"
+        "php": ">=7.4 <8.5",
+        "alchemy/binary-driver": "^5.2",
+        "doctrine/cache": "^1.13",
+        "evenement/evenement": "^3.0",
+        "neutron/temporary-filesystem": "^3.0.1",
+        "symfony/process": "^5.4"
     },
     "suggest": {
-        "php-ffmpeg/extras": "A compilation of common audio & video drivers for PHP-FFMpeg"
+        "php-ffmpeg/extras": "A compilation of common audio & video drivers for PHP-FFMpeg",
+        "silex/silex": "Only needed for the legacy Silex 1 service provider; excluded from the PHP 7.4–8.4 test matrix."
     },
     "require-dev": {
-        "sami/sami": "~1.0",
-        "silex/silex": "~1.0",
-        "phpunit/phpunit": "^4.8.36"
+        "phpunit/phpunit": "^9.6"
     },
     "autoload": {
         "psr-0": {
@@ -60,5 +69,10 @@
         "psr-4": {
             "Tests\\FFMpeg\\": "tests"
         }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:functional": "phpunit --testsuite functional"
     }
 }

@@ -1,7 +1,7 @@
 <?php
 namespace Tests\FFMpeg\Unit\Media;
 
-use FFMpeg\Media\Clip;
+use FFMpeg\Media\Video;
 
 class ClipTest extends AbstractMediaTestCase
 {
@@ -35,7 +35,7 @@ class ClipTest extends AbstractMediaTestCase
 
         $outputPathfile = '/target/file';
 
-        $format = $this->getMock('FFMpeg\Format\VideoInterface');
+        $format = $this->createMock('FFMpeg\Format\VideoInterface');
         $format->expects($this->any())
             ->method('getPasses')
             ->will($this->returnValue(1));
@@ -43,7 +43,7 @@ class ClipTest extends AbstractMediaTestCase
             ->method('getExtraParams')
             ->will($this->returnValue(array()));
 
-        $clip = new Clip($this->getVideoMock(__FILE__), $driver, $ffprobe, $start, $duration);
+        $clip = (new Video(__FILE__, $driver, $ffprobe))->clip($start, $duration);
         $fc = $clip->getFinalCommand($format, $outputPathfile);
 
         $this->assertCount(1, $fc);
@@ -54,12 +54,10 @@ class ClipTest extends AbstractMediaTestCase
     {
         return array(
             array('SS01', null, array(
-                    '-y', '-ss', 'SS01',
-                    '-i', __FILE__)
+                    '-y', '-i', __FILE__, '-ss', 'SS01')
             ),
             array('SS02', 'D02', array(
-                    '-y', '-ss', 'SS02',
-                    '-i', __FILE__,
+                    '-y', '-i', __FILE__, '-ss', 'SS02',
                     '-t', 'D02')
             )
         );

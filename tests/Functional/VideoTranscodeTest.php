@@ -1,4 +1,14 @@
 <?php
+/*
+ * @Author        : turbo 664120459@qq.com
+ * @Date          : 2026-10-28 23:37:28
+ * @LastEditors   : turbo 664120459@qq.com
+ * @LastEditTime  : 2026-10-29 08:43:48
+ * @FilePath      : /php-ffmpeg/tests/Functional/VideoTranscodeTest.php
+ * @Description   : 
+ * 
+ * Copyright (c) 2026 by ${git_name}, All Rights Reserved. 
+ */
 
 namespace Tests\FFMpeg\Functional;
 
@@ -70,11 +80,9 @@ class VideoTranscodeTest extends FunctionalTestCase
         unlink($filename);
     }
 
-    /**
-     * @expectedException \FFMpeg\Exception\RuntimeException
-     */
     public function testTranscodeInvalidFile()
     {
+        $this->expectException('FFMpeg\Exception\RuntimeException');
         $ffmpeg = $this->getFFMpeg();
         $ffmpeg->open(__DIR__ . '/../files/UnknownFileTest.ogv');
     }
@@ -84,7 +92,7 @@ class VideoTranscodeTest extends FunctionalTestCase
         $ffmpeg = $this->getFFMpeg();
         $video = new Video(__DIR__ . '/../files/UnknownFileTest.ogv', $ffmpeg->getFFMpegDriver(), $ffmpeg->getFFProbe());
 
-        $this->setExpectedException('FFMpeg\Exception\RuntimeException');
+        $this->expectException('FFMpeg\Exception\RuntimeException');
         $video->save(new X264('aac'), __DIR__ . '/output/output-x264.mp4');
     }
 

@@ -34,7 +34,7 @@ class ConcatTest extends AbstractMediaTestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $filter = $this->getMock('FFMpeg\Filters\Concat\ConcatFilterInterface');
+        $filter = $this->createMock('FFMpeg\Filters\Concat\ConcatFilterInterface');
 
         $filters->expects($this->once())
             ->method('add')
@@ -110,12 +110,16 @@ class ConcatTest extends AbstractMediaTestCase
         $driver = $this->getFFMpegDriverMock();
         $ffprobe = $this->getFFProbeMock();
         $format = $this->getFormatInterfaceMock();
+        $ffprobe->method('streams')->willReturn(new \FFMpeg\FFProbe\DataMapping\StreamCollection(array(
+            new \FFMpeg\FFProbe\DataMapping\Stream(array('codec_type' => 'video')),
+            new \FFMpeg\FFProbe\DataMapping\Stream(array('codec_type' => 'audio')),
+        )));
 
         $pathfile = '/target/destination';
 
         array_push($commands, $pathfile);
 
-        $configuration = $this->getMock('Alchemy\BinaryDriver\ConfigurationInterface');
+        $configuration = $this->createMock('Alchemy\BinaryDriver\ConfigurationInterface');
 
         $driver->expects($this->any())
             ->method('getConfiguration')

@@ -67,14 +67,11 @@ class Stream extends AbstractData
             throw new RuntimeException('Unable to extract dimensions.');
         }
 
-        if (null !== $displayRatio && null !== $sampleRatio) {
-            if ($sampleRatio[0] !== 1 && $sampleRatio[1] !== 1) {
-                if (null !== $width && null !== $height) {
-                    // stretch video according to pixel sample aspect ratio
-                    $width = round($width * ($sampleRatio[0] / $sampleRatio[1]));
-                    // set height according to display aspect ratio
-                    $height = round($width * ($displayRatio[1] / $displayRatio[0]));
-                }
+        if (null !== $sampleRatio && $sampleRatio[0] !== $sampleRatio[1]) {
+            // SAR supplies the horizontal stretch; DAR, when available, supplies the final shape.
+            $width = round($width * ($sampleRatio[0] / $sampleRatio[1]));
+            if (null !== $displayRatio) {
+                $height = round($width * ($displayRatio[1] / $displayRatio[0]));
             }
         }
 
@@ -95,13 +92,9 @@ class Stream extends AbstractData
         }
 
         $ratio = $stream->get($name);
-        if (preg_match('/\d+:\d+/', $ratio)) {
-            $data = array_filter(explode(':', $ratio), function ($int) {
-                return $int > 0;
-            });
-            if (2 === count($data)) {
-                return array_map(function ($int) { return (int) $int; }, $data);
-            }
+        if (preg_match('/^([0-9]+):([0-9]+)$/D', $ratio, $matches) === 1
+            && (int) $matches[1] > 0 && (int) $matches[2] > 0) {
+            return array((int) $matches[1], (int) $matches[2]);
         }
     }
 }

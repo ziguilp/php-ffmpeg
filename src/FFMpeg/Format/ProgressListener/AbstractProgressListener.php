@@ -174,7 +174,7 @@ abstract class AbstractProgressListener extends EventEmitter implements Listener
         }
 
         $currentDuration = $this->convertDuration($matches[2]);
-        $currentTime = microtime(true);
+        $currentTime = $this->getTimestamp();
         $currentSize = trim(str_replace('kb', '', strtolower(($matches[1]))));
         $percent = max(0, min(1, $currentDuration / $this->duration));
 
@@ -187,7 +187,7 @@ abstract class AbstractProgressListener extends EventEmitter implements Listener
             }
 
             $deltaSize = $currentSize - $this->currentSize;
-            $rate = $deltaSize * $delta;
+            $rate = $delta > 0 ? $deltaSize / $delta : 0;
             if ($rate > 0) {
                 $totalDuration = $this->totalSize / $rate;
                 $this->remaining = floor($totalDuration - ($totalDuration * $percent));
@@ -243,6 +243,11 @@ abstract class AbstractProgressListener extends EventEmitter implements Listener
         );
     }
 
+    protected function getTimestamp(): float
+    {
+        return microtime(true);
+    }
+
     private function initialize()
     {
         try {
@@ -255,7 +260,11 @@ abstract class AbstractProgressListener extends EventEmitter implements Listener
             return;
         }
 
-        $this->duration = (int) $this->duration > 0 ? $this->duration : $format->get('duration');
+        if (!is_numeric($format->get('duration')) || $format->get('duration') <= 0) {
+            return;
+        }
+
+        $this->duration = (float) $this->duration > 0 ? $this->duration : $format->get('duration');
         $this->totalSize = $format->get('size') / 1024 * ($this->duration / $format->get('duration'));
         $this->initialized = true;
     }

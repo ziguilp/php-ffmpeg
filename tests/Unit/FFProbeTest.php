@@ -236,11 +236,12 @@ class FFProbeTest extends TestCase
     }
 
     /**
-     * @expectedException FFMpeg\Exception\RuntimeException
+
      * @dataProvider provideProbeMethod
      */
     public function testProbeWithoutShowStreamsAvailable($method)
     {
+        $this->expectException('FFMpeg\Exception\RuntimeException');
         $pathfile = __FILE__;
 
         $ffprobe = new FFProbe($this->getFFProbeDriverMock(), $this->getCacheMock());
